@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "siteSettings": {
+      "title": "Site Settings",
+      "description": "Global website branding, site name, logo, favicon, and contact settings",
+      "type": "object",
+      "properties": {
+        "siteName": { "type": "string" },
+        "companyName": { "type": "string" },
+        "tagline": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "faviconUrl": { "type": "string" },
+        "contactEmail": { "type": "string" },
+        "footerText": { "type": "string" },
+        "googleAnalyticsId": { "type": "string" },
+        "googleSearchConsole": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "adPlacement": {
+      "title": "Ad Placement",
+      "description": "Configuration for an Adsterra or custom advertisement slot",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "code": { "type": "string" },
+        "minHeight": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "enabled", "code"]
+    }
+  },
+  "firestore": {
+    "/settings/{settingId}": {
+      "schema": "siteSettings",
+      "description": "Global platform configurations including site settings and branding"
+    },
+    "/ads/{placementKey}": {
+      "schema": "adPlacement",
+      "description": "All Adsterra monetization slots and standard banner sizes"
+    }
+  }
+}

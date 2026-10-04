@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AdPlacement, SiteSettings, SeoSettings, ToolConfig } from '../types';
 import { INITIAL_TOOLS } from '../data/toolsData';
+import {
+  testConnection,
+  fetchCloudAds,
+  fetchCloudSettings,
+  subscribeToCloudAds,
+  subscribeToCloudSettings,
+} from '../services/firebase';
 
 interface AppContextType {
   tools: ToolConfig[];
@@ -144,10 +151,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err) {
       console.warn('API fetch warning, using client fallback:', err);
     }
+
+    // 3. Fetch from Firebase Cloud Database (Universal source of truth across all countries)
+    try {
+      const [cloudAds, cloudSettings] = await Promise.allSettled([
+        fetchCloudAds(),
+        fetchCloudSettings(),
+      ]);
+
+      if (cloudAds.status === 'fulfilled' && cloudAds.value) {
+        setAds((prev) => ({ ...prev, ...cloudAds.value }));
+      }
+      if (cloudSettings.status === 'fulfilled' && cloudSettings.value) {
+        setSettings((prev) => ({ ...prev, ...cloudSettings.value }));
+      }
+    } catch (err) {
+      console.warn('Firebase cloud initial fetch note:', err);
+    }
   };
 
   useEffect(() => {
+    testConnection();
     fetchData();
+
+    // Subscribe to real-time Firebase cloud updates (instantly syncs across US, BD, & worldwide)
+    const unsubAds = subscribeToCloudAds((updatedAds) => {
+      if (updatedAds && Object.keys(updatedAds).length > 0) {
+        setAds((prev) => ({ ...prev, ...updatedAds }));
+      }
+    });
+
+    const unsubSettings = subscribeToCloudSettings((updatedSettings) => {
+      if (updatedSettings && Object.keys(updatedSettings).length > 0) {
+        setSettings((prev) => ({ ...prev, ...updatedSettings }));
+      }
+    });
+
+    return () => {
+      unsubAds();
+      unsubSettings();
+    };
   }, []);
 
   const recordToolUsage = async (slug: string) => {

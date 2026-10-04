@@ -18,6 +18,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { AdPlacement } from '../../types';
 import { AdSlot } from '../../components/ads/AdSlot';
+import { saveCloudAds } from '../../services/firebase';
 
 interface AdFormatMeta {
   key: string;
@@ -272,25 +273,37 @@ export const AdminAdsManager: React.FC = () => {
     setIsSaving(true);
     setSaveStatus(null);
     try {
+      // 1. Save directly to Firebase Cloud Database (Syncs globally in real time)
+      const cloudSuccess = await saveCloudAds(localAds);
+
+      // 2. Local storage backup
       try {
         localStorage.setItem('unmokto_custom_ads', JSON.stringify(localAds));
       } catch (err) {
         console.warn('LocalStorage save error:', err);
       }
 
-      const res = await fetch('/api/admin/ads', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${adminToken}`,
-        },
-        body: JSON.stringify(localAds),
-      });
+      // 3. Server API sync (if running with Node server)
+      try {
+        await fetch('/api/admin/ads', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${adminToken}`,
+          },
+          body: JSON.stringify(localAds),
+        });
+      } catch {
+        // ignore if static
+      }
 
-      if (!res.ok && res.status !== 404) throw new Error('Failed to save ads configuration');
       await refreshData();
-      setSaveStatus('Adsterra ad codes saved successfully!');
-      setTimeout(() => setSaveStatus(null), 3500);
+      setSaveStatus(
+        cloudSuccess
+          ? 'Saved to Firebase Cloud Database! Live worldwide in real-time.'
+          : 'Adsterra ad codes saved successfully!'
+      );
+      setTimeout(() => setSaveStatus(null), 4000);
     } catch (e: any) {
       await refreshData();
       setSaveStatus('Adsterra ad codes saved!');

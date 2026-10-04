@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Settings, Save, Check, Key, Shield, Palette, Image as ImageIcon, Upload, Trash2, Globe } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { SiteSettings } from '../../types';
+import { saveCloudSettings } from '../../services/firebase';
 
 export const AdminSiteSettings: React.FC = () => {
   const { settings, adminToken, refreshData } = useApp();
@@ -57,27 +58,39 @@ export const AdminSiteSettings: React.FC = () => {
         payload.newPassword = newPassword;
       }
 
+      // 1. Save directly to Firebase Cloud Database (Syncs globally in real time)
+      const cloudSuccess = await saveCloudSettings(payload);
+
+      // 2. Local storage backup
       try {
         localStorage.setItem('unmokto_custom_settings', JSON.stringify(payload));
       } catch (err) {
         console.warn('LocalStorage save error:', err);
       }
 
-      const res = await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${adminToken}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      // 3. Server API sync (if running with Node server)
+      try {
+        await fetch('/api/admin/settings', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${adminToken}`,
+          },
+          body: JSON.stringify(payload),
+        });
+      } catch {
+        // ignore if static
+      }
 
-      if (!res.ok && res.status !== 404) throw new Error('Failed to update site settings');
       await refreshData();
-      setStatusMessage('Settings updated successfully!');
+      setStatusMessage(
+        cloudSuccess
+          ? 'Settings saved to Firebase Cloud Database! Live worldwide.'
+          : 'Settings updated successfully!'
+      );
       setNewPassword('');
       setConfirmPassword('');
-      setTimeout(() => setStatusMessage(null), 3000);
+      setTimeout(() => setStatusMessage(null), 3500);
     } catch (e: any) {
       await refreshData();
       setStatusMessage('Settings updated!');
