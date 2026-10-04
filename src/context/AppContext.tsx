@@ -106,8 +106,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [settings.companyName, settings.siteName, settings.tagline]);
 
   const fetchData = async () => {
+    // 1. Initial check for local overrides (vital for Vercel static deployments)
     try {
-      // Fetch public settings
+      const localSettings = localStorage.getItem('unmokto_custom_settings');
+      if (localSettings) {
+        setSettings((prev) => ({ ...prev, ...JSON.parse(localSettings) }));
+      }
+      const localAds = localStorage.getItem('unmokto_custom_ads');
+      if (localAds) {
+        setAds((prev) => ({ ...prev, ...JSON.parse(localAds) }));
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      // 2. Fetch from backend API
       const [settingsRes, adsRes, seoRes, toolsRes] = await Promise.allSettled([
         fetch('/api/public/settings').then((r) => (r.ok ? r.json() : null)),
         fetch('/api/public/ads').then((r) => (r.ok ? r.json() : null)),
@@ -119,7 +133,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSettings((prev) => ({ ...prev, ...settingsRes.value }));
       }
       if (adsRes.status === 'fulfilled' && adsRes.value) {
-        setAds(adsRes.value);
+        setAds((prev) => ({ ...prev, ...adsRes.value }));
       }
       if (seoRes.status === 'fulfilled' && seoRes.value) {
         setSeo((prev) => ({ ...prev, ...seoRes.value }));

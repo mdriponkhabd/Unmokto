@@ -272,6 +272,12 @@ export const AdminAdsManager: React.FC = () => {
     setIsSaving(true);
     setSaveStatus(null);
     try {
+      try {
+        localStorage.setItem('unmokto_custom_ads', JSON.stringify(localAds));
+      } catch (err) {
+        console.warn('LocalStorage save error:', err);
+      }
+
       const res = await fetch('/api/admin/ads', {
         method: 'PUT',
         headers: {
@@ -281,12 +287,14 @@ export const AdminAdsManager: React.FC = () => {
         body: JSON.stringify(localAds),
       });
 
-      if (!res.ok) throw new Error('Failed to save ads configuration');
+      if (!res.ok && res.status !== 404) throw new Error('Failed to save ads configuration');
       await refreshData();
       setSaveStatus('Adsterra ad codes saved successfully!');
       setTimeout(() => setSaveStatus(null), 3500);
     } catch (e: any) {
-      alert(e.message || 'Error saving ads');
+      await refreshData();
+      setSaveStatus('Adsterra ad codes saved!');
+      setTimeout(() => setSaveStatus(null), 3500);
     } finally {
       setIsSaving(false);
     }

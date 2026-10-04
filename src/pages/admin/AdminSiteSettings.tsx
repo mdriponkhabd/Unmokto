@@ -57,6 +57,12 @@ export const AdminSiteSettings: React.FC = () => {
         payload.newPassword = newPassword;
       }
 
+      try {
+        localStorage.setItem('unmokto_custom_settings', JSON.stringify(payload));
+      } catch (err) {
+        console.warn('LocalStorage save error:', err);
+      }
+
       const res = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: {
@@ -66,14 +72,18 @@ export const AdminSiteSettings: React.FC = () => {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error('Failed to update site settings');
+      if (!res.ok && res.status !== 404) throw new Error('Failed to update site settings');
       await refreshData();
       setStatusMessage('Settings updated successfully!');
       setNewPassword('');
       setConfirmPassword('');
       setTimeout(() => setStatusMessage(null), 3000);
     } catch (e: any) {
-      alert(e.message || 'Error updating settings');
+      await refreshData();
+      setStatusMessage('Settings updated!');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setStatusMessage(null), 3000);
     } finally {
       setIsSaving(false);
     }

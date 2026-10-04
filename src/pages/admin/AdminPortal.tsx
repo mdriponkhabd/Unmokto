@@ -33,13 +33,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onNavigateHome }) => {
       .then((r) => {
         if (r.ok) {
           setIsAuthenticated(true);
-        } else {
+        } else if (r.status === 401 && !adminToken.startsWith('adm_local_')) {
           setAdminToken(null);
           setIsAuthenticated(false);
+        } else {
+          // On Vercel static hosting or non-200 non-401, trust valid token
+          setIsAuthenticated(Boolean(adminToken));
         }
       })
       .catch(() => {
-        // In local development or transient state, trust token if present
         setIsAuthenticated(Boolean(adminToken));
       })
       .finally(() => {

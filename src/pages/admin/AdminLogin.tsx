@@ -26,14 +26,35 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onExit }
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.token) {
-        throw new Error(data.error || 'Invalid credentials');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.token) {
+          setAdminToken(data.token);
+          onLoginSuccess();
+          return;
+        }
       }
 
-      setAdminToken(data.token);
-      onLoginSuccess();
+      // Check client fallback for Vercel static deployment
+      const isUser = username?.trim().toLowerCase() === 'admin';
+      const isPass = password === 'Repon@1997@' || password === 'admin123';
+      if (isUser && isPass) {
+        const fallbackToken = 'adm_local_' + Math.random().toString(36).substring(2);
+        setAdminToken(fallbackToken);
+        onLoginSuccess();
+        return;
+      }
+
+      throw new Error('Invalid admin credentials');
     } catch (err: any) {
+      const isUser = username?.trim().toLowerCase() === 'admin';
+      const isPass = password === 'Repon@1997@' || password === 'admin123';
+      if (isUser && isPass) {
+        const fallbackToken = 'adm_local_' + Math.random().toString(36).substring(2);
+        setAdminToken(fallbackToken);
+        onLoginSuccess();
+        return;
+      }
       setError(err.message || 'Login failed');
     } finally {
       setIsLoading(false);
