@@ -1,0 +1,6 @@
+{
+  "name": "Unmokto",
+  "description": "Free Online Tools for Everyone - Fast, private browser-based utilities for images, PDFs, videos, text, calculators, and more.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
